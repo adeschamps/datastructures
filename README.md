@@ -2,7 +2,7 @@
 A collection of data structures in the spirit of the C++ Standard Library
 
 ## splaytree ##
-See en.wikipedia.org/wiki/Splay_Tree
+See http://en.wikipedia.org/wiki/Splay_Tree
 
 Splay trees move a node to the root every time it is accessed.
 This makes recently accessed nodes much faster to find.
