@@ -4,8 +4,6 @@
 #include <cstddef>
 #include <utility>
 
-#include <iostream>
-
 namespace ad
 {
   template <typename T>
@@ -298,7 +296,6 @@ namespace ad
   template <typename T>
   typename splaytree<T>::iterator splaytree<T>::find (T const & value)
   {
-    uint distance = 0;
     node * n = root;
     while (n != nullptr)
       {
@@ -309,7 +306,6 @@ namespace ad
 	    splay (n);
 	    return iterator (n);
 	  }
-	++distance;
       }
     return iterator (nullptr);
   }
@@ -344,92 +340,16 @@ namespace ad
 
     iterator (node * n_) : n (n_) {}
     iterator (iterator const & iter) : n (iter.n) {}
-    // ~ iterator ();
 
     T & operator * ()
     { return n -> value; }
 
-    iterator & operator ++ ()
-    {
-      int side = 0;
-      do
-	{
-	  switch (side)
-	    {
-	    case -1: // left
-	      if (n -> left)
-		n = n -> left;
-	      else
-		side = 0;
-	      break;
-
-	    case 0: // bottom
-	      if (n -> right)
-		{
-		  n = n -> right;
-		  side = -1;
-		}
-	      else
-		side = 1;
-	      break;
-
-	    case 1: // right
-	      if (n -> parent)
-		{
-		  if (n == n -> parent -> left)
-		    side = 0;
-		}
-	      else
-		side = 0;
-	      n = n -> parent;
-	    }
-	}
-      while (side != 0);
-      return *this;
-    }
+    iterator & operator ++ ();
 
     iterator operator ++ (int)
     { iterator tmp (*this); ++ (*this); return tmp; }
 
-    iterator & operator -- ()
-    {
-      int side = 0;
-      do
-	{
-	  switch (side)
-	    {
-	    case -1: // left
-	      if (n -> parent)
-		{
-		  if (n == n -> parent -> right)
-		    side = 0;
-		}
-	      else
-		side = 0;
-	      n = n -> parent;
-	      break;
-
-	    case 0: // bottom
-	      if (n -> left)
-		{
-		  n = n -> left;
-		  side = 1;
-		}
-	      else
-		side = -1;
-	      break;
-
-	    case 1: // right
-	      if (n -> right)
-		n = n -> right;
-	      else
-		side = 0;
-	      break;
-	    }
-	}
-      while (side != 0);
-      return *this;
-    }
+    iterator & operator -- ();
 
     iterator operator -- (int)
     { iterator tmp (*this); -- (*this); return tmp; }
@@ -439,7 +359,80 @@ namespace ad
 
     bool operator != (iterator const & iter)
     { return n != iter.n; }
-  };
-}
+  }; // class iterator
+
+  template <typename T>
+  typename splaytree<T>::iterator & splaytree<T>::iterator::operator ++ ()
+  {
+    int side = 0;
+    do
+      {
+	switch (side)
+	  {
+	  case -1: // left
+	    if (n -> left)
+	      n = n -> left;
+	    else
+	      side = 0;
+	    break;
+
+	  case 0: // bottom
+	    if (n -> right)
+	      {
+		n = n -> right;
+		side = -1;
+	      }
+	    else
+	      side = 1;
+	    break;
+
+	  case 1: // right
+	    if (n -> parent == nullptr || n == n -> parent -> left)
+	      side = 0;
+	    n = n -> parent;
+	    break;
+	  }
+      }
+    while (side != 0);
+    return *this;
+  }
+
+  template <typename T>
+  typename splaytree<T>::iterator & splaytree<T>::iterator::operator -- ()
+  {
+    int side = 0;
+    do
+      {
+	switch (side)
+	  {
+	  case -1: // left
+	    if (n -> parent == nullptr || n == n -> parent -> right)
+	      side = 0;
+	    n = n -> parent;
+	    break;
+
+	  case 0: // bottom
+	    if (n -> left)
+	      {
+		n = n -> left;
+		side = 1;
+	      }
+	    else
+	      side = -1;
+	    break;
+
+	  case 1: // right
+	    if (n -> right)
+	      n = n -> right;
+	    else
+	      side = 0;
+	    break;
+	  }
+      }
+    while (side != 0);
+    return *this;
+  }
+
+} // namespace ad
 
 #endif
