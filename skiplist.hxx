@@ -5,8 +5,6 @@
 #include <functional>
 #include <iterator>
 
-#include <iostream>
-
 namespace ad
 {
   template <typename T>
