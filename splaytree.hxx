@@ -2,6 +2,7 @@
 #define AD_SPLAYTREE_HXX
 
 #include <cstddef>
+#include <iterator>
 #include <utility>
 
 namespace ad
@@ -34,12 +35,15 @@ namespace ad
 
     iterator insert (T const & value);
     iterator insert (T && value);
+  private:
     iterator insert (node * n);
 
+  public:
     iterator find (T const & value);
 
+    // NOTE: Not yet implemented
     void   erase (iterator iter);
-    // void   erase (iterator begin, iterator end);
+    void   erase (iterator begin, iterator end);
     size_t erase (T const & value);
   };
 
@@ -310,6 +314,7 @@ namespace ad
     return iterator (nullptr);
   }
 
+  // NOTE: Not yet implemented
   template <typename T>
   void splaytree<T>::erase (iterator iter)
   {}
@@ -332,7 +337,7 @@ namespace ad
   }
 
   template <typename T>
-  class splaytree<T>::iterator
+  class splaytree<T>::iterator : public std::iterator<std::forward_iterator_tag, T>
   {
     node * n;
 
