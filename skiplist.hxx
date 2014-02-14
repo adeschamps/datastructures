@@ -2,8 +2,8 @@
 #define AD_SKIPLIST_HXX
 
 #include <cstddef>
+#include <functional>
 #include <iterator>
-#include <utility>
 
 #include <iostream>
 
@@ -12,40 +12,27 @@ namespace ad
   template <typename T>
   class skiplist
   {
-  private:
     struct node;
 
-  public:
-    class iterator;
-
-    skiplist ();
-    ~ skiplist ();
-
-  private:
     node * anchor;
     size_t num_nodes = 0;
 
   public:
+
+    skiplist ();
+    ~ skiplist ();
+
+    class iterator;
     iterator begin ();
     iterator end ();
 
-    bool   empty () const;
-    size_t size  () const;
+    bool empty () const;
+    size_t size () const;
 
-    iterator insert (T const & value);
-    iterator insert (T && value);
-  private:
-    iterator insert (node * n);
-
-  public:
     iterator find (T const & value);
 
-  private:
-    void delete_node (node * n);
+    iterator insert (T const & value);
 
-    void   erase (iterator iter);
-    void   erase (iterator begin, iterator end);
-    size_t erase (T const & value);
   };
 
   template <typename T>
@@ -56,8 +43,8 @@ namespace ad
     node ** next;
     node ** prev;
 
-    node (T const & value = T());
-    node (T && value);
+    node (T const & value_ = T());
+    node (T && value_);
     ~ node ();
 
     void resize (size_t new_links);
@@ -77,7 +64,7 @@ namespace ad
   template <typename T>
   skiplist<T>::node::node (T && value_)
   {
-    value = std::move(value_);
+    value = std::move(value);
     links = 1;
     while (rand() % 2 == 0)
       ++ links;
@@ -88,14 +75,8 @@ namespace ad
   template <typename T>
   skiplist<T>::node::~node ()
   {
-    // for (uint i=0; i<links; ++i)
-    //   {
-    // 	prev[i] -> next[i] = next[i];
-    // 	next[i] -> prev[i] = prev[i];
-    //   }
-
-    delete [] next;
-    delete [] prev;
+    delete next;
+    delete prev;
   }
 
   template <typename T>
@@ -103,27 +84,26 @@ namespace ad
   {
     node ** new_next = new node * [new_links];
     node ** new_prev = new node * [new_links];
-
-    for (size_t i = 0; i < links; ++i)
+    for (size_t i=0; i<links; ++i)
       {
 	new_next[i] = next[i];
 	new_prev[i] = prev[i];
       }
-    for (size_t i = links; i < new_links; ++i)
+    for (size_t i=links; i<new_links; ++i)
       {
 	new_next[i] = this;
 	new_prev[i] = this;
       }
-
     delete [] next;
     delete [] prev;
-
-    links = new_links;
     next = new_next;
     prev = new_prev;
+    links = new_links;
   }
+  // end struct node;
 
-  // End struct node
+
+
 
 
 
@@ -131,25 +111,22 @@ namespace ad
   skiplist<T>::skiplist ()
   {
     anchor = new node;
-    for (uint i=0; i < anchor->links; ++i)
-      {
-	anchor -> prev[i] = anchor;
-	anchor -> next[i] = anchor;
-      }
+    anchor -> next[0] = anchor;
+    anchor -> prev[0] = anchor;
   }
 
   template <typename T>
   skiplist<T>::~skiplist ()
   {
+    anchor -> prev[0] -> next[0] = nullptr;
     node * n = anchor -> next[0];
-    anchor -> next[0] = nullptr;
-    node * np;
     while (n)
       {
-	np = n;
+	node * np = n;
 	n = n -> next[0];
 	delete np;
       }
+    delete anchor;
   }
 
   template <typename T>
@@ -169,54 +146,58 @@ namespace ad
   { return num_nodes; }
 
   template <typename T>
+  typename skiplist<T>::iterator skiplist<T>::find (T const & value)
+  {
+    size_t h = anchor -> links;
+    node * n = anchor;
+
+    while (h != 0)
+      {
+	-- h;
+	while (n -> next[h] != anchor &&
+	       n -> next[h] -> value < value)
+	  n = n -> next[h];
+      }
+
+    if (n -> next[0] == anchor ||
+	value < n -> next[0] -> value)
+      return iterator (anchor);
+    else return iterator (n);
+  }
+
+  template <typename T>
   typename skiplist<T>::iterator skiplist<T>::insert (T const & value)
   {
     node * n = new node (value);
-    return insert (n);
-  }
-
-  template <typename T>
-  typename skiplist<T>::iterator skiplist<T>::insert (T && value)
-  {
-    node * n = new node (std::move(value));
-    return insert (n);
-  }
-
-  template <typename T>
-  typename skiplist<T>::iterator skiplist<T>::insert (node * n)
-  {
     if (n -> links > anchor -> links)
       anchor -> resize(n -> links);
 
+    size_t h = anchor -> links;
     node * loc = anchor;
-    size_t i = anchor -> links;
-    do
+
+    while (h != 0)
       {
-	-- i;
-	while (loc -> next[i] != anchor &&
-	       loc -> next[i] -> value < n -> value)
-	  loc = loc -> next[i];
+	-- h;
+	while (loc -> next[h] != anchor &&
+	       loc -> next[h] -> value < value)
+	  loc = loc -> next[h];
       }
-    while (i > 0);
 
     node * r = loc -> next[0];
-
-    for (size_t i = 0; i < n -> links; ++i)
+    for (size_t i=0; i < n -> links; ++i)
       {
-	while (i >= r -> links)
-	  r = r -> next[i-1];
-	n -> next[i] = r;
-	r -> prev[i] = n;
-
-	while (i >= loc -> links)
-	  loc = loc -> prev[i-1];
-	n -> prev[i] = loc;
+	while (i >= loc -> links) loc = loc -> prev[i-1];
+	while (i >= r   -> links) r   = r   -> next[i-1];
 	loc -> next[i] = n;
+	r   -> prev[i] = n;
+	n -> prev[i] = loc;
+	n -> next[i] = r;
       }
 
-    ++ num_nodes;
     return iterator (n);
   }
+
+
 
 
   template <typename T>
@@ -225,6 +206,7 @@ namespace ad
     node * n;
 
   public:
+
     iterator (node * n_) : n (n_) {}
     iterator (iterator const & iter) : n (iter.n) {}
 
@@ -243,12 +225,12 @@ namespace ad
     iterator operator -- (int)
     { iterator tmp (*this); -- (*this); return tmp; }
 
-    bool operator == (iterator const & iter)
+    bool operator == (iterator iter) const
     { return n == iter.n; }
 
-    bool operator != (iterator const & iter)
+    bool operator != (iterator iter) const
     { return n != iter.n; }
-  }; // class iterator
+  }; // iterator
 }
 
 #endif
